@@ -86,11 +86,17 @@ exports.updateTicket = async (req, res) => {
 
       if (recipientEmail) {
         const transporter = nodemailer.createTransport({
-          service: 'gmail',
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false, // port 587 için secure: false olmalıdır
           auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS,
           },
+          tls: {
+            ciphers: 'SSLv3',
+            rejectUnauthorized: false
+          }
         });
 
         const mailOptions = {
