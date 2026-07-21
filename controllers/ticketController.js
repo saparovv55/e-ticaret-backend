@@ -100,8 +100,10 @@ exports.updateTicket = async (req, res) => {
           text: `Merhaba,\n\nDestek talebinize yönelik yöneticimiz tarafından verilen yanıt aşağıdadır:\n\n"${adminReply}"\n\nBizi tercih ettiğiniz için teşekkür ederiz.\nBeka Spor Müşteri Hizmetleri`
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log(`Destek bileti cevap maili gönderildi: ${recipientEmail}`);
+        // Asenkron olarak arka planda gönder, isteği engellemesin
+        transporter.sendMail(mailOptions)
+          .then(() => console.log(`Destek bileti cevap maili gönderildi: ${recipientEmail}`))
+          .catch(err => console.error(`Destek bileti mail gönderim hatası:`, err));
       }
     }
 
