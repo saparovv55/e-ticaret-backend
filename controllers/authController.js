@@ -90,33 +90,41 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 dakika geçerli
     await user.save();
 
-    // Reset URL
-    const resetUrl = `http://localhost:3000/reset-password/${resetToken}`;
+    // Reset URL (İstek atılan domaine göre dinamik: Vercel ise Vercel, lokal ise lokal)
+    const resetUrl = `${req.headers.origin || 'http://localhost:3000'}/reset-password/${resetToken}`;
     
-    // E-posta gönderimi (Gerçek SMTP - Gmail)
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false, // port 587 için secure: false olmalıdır
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+    // E-posta gönderimi (Brevo HTTP API - Port 443 - HTTPS)
+    const brevoPayload = {
+      sender: {
+        name: "Beka Spor",
+        email: process.env.EMAIL_USER
       },
-      tls: {
-        rejectUnauthorized: false
-      },
-      family: 4 // Render'daki IPv6 (ENETUNREACH) hatasını çözmek için IPv4 zorla
-    });
-
-    const message = {
-      from: `"Beka Spor" <${process.env.EMAIL_USER}>`,
-      to: user.email,
+      to: [
+        {
+          email: user.email
+        }
+      ],
       subject: "Beka Spor Şifre Sıfırlama Talebi",
-      text: `Şifrenizi sıfırlamak için şu bağlantıya gidin: \n\n ${resetUrl}`
+      textContent: `Şifrenizi sıfırlamak için şu bağlantıya gidin: \n\n ${resetUrl}`
     };
 
-    await transporter.sendMail(message);
-    console.log("Mail gönderildi:", user.email);
+    fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(brevoPayload)
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.text().then(text => { throw new Error(text) });
+      }
+      return res.json();
+    })
+    .then(data => console.log(`Şifre sıfırlama maili Brevo ile gönderildi: ${user.email}`))
+    .catch(err => console.error(`Şifre sıfırlama maili gönderim hatası (Brevo):`, err.message));
 
     res.status(200).json({ message: 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.' });
 

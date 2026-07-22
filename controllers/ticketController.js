@@ -85,31 +85,38 @@ exports.updateTicket = async (req, res) => {
       }
 
       if (recipientEmail) {
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false, // port 587 için secure: false olmalıdır
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+        // Send email using Brevo HTTP API (Port 443 - HTTPS) instead of raw SMTP ports
+        const brevoPayload = {
+          sender: {
+            name: "Beka Spor Müşteri Hizmetleri",
+            email: process.env.EMAIL_USER // Gmail registered as Brevo sender automatically on signup
           },
-          tls: {
-            rejectUnauthorized: false
-          },
-          family: 4 // Render'daki IPv6 (ENETUNREACH) hatasını çözmek için IPv4 zorla
-        });
-
-        const mailOptions = {
-          from: `"Beka Spor Müşteri Hizmetleri" <${process.env.EMAIL_USER}>`,
-          to: recipientEmail,
+          to: [
+            {
+              email: recipientEmail
+            }
+          ],
           subject: `Destek Talebi Yanıtı: ${ticket.subject}`,
-          text: `Merhaba,\n\nDestek talebinize yönelik yöneticimiz tarafından verilen yanıt aşağıdadır:\n\n"${adminReply}"\n\nBizi tercih ettiğiniz için teşekkür ederiz.\nBeka Spor Müşteri Hizmetleri`
+          textContent: `Merhaba,\n\nDestek talebinize yönelik yöneticimiz tarafından verilen yanıt aşağıdadır:\n\n"${adminReply}"\n\nBizi tercih ettiğiniz için teşekkür ederiz.\nBeka Spor Müşteri Hizmetleri`
         };
 
-        // Asenkron olarak arka planda gönder, isteği engellemesin
-        transporter.sendMail(mailOptions)
-          .then(() => console.log(`Destek bileti cevap maili gönderildi: ${recipientEmail}`))
-          .catch(err => console.error(`Destek bileti mail gönderim hatası:`, err));
+        fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': process.env.BREVO_API_KEY,
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify(brevoPayload)
+        })
+        .then(res => {
+          if (!res.ok) {
+            return res.text().then(text => { throw new Error(text) });
+          }
+          return res.json();
+        })
+        .then(data => console.log(`Destek bileti cevap maili Brevo ile gönderildi: ${recipientEmail}`, data))
+        .catch(err => console.error(`Destek bileti mail gönderim hatası (Brevo):`, err.message));
       }
     }
 
