@@ -89,7 +89,7 @@ exports.updateTicket = async (req, res) => {
         const brevoPayload = {
           sender: {
             name: "Beka Spor Müşteri Hizmetleri",
-            email: process.env.EMAIL_USER // Gmail registered as Brevo sender automatically on signup
+            email: process.env.EMAIL_USER.toLowerCase() // Brevo case-sensitive eşleşme hatasını çözmek için küçük harfe zorla
           },
           to: [
             {

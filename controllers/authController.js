@@ -97,7 +97,7 @@ exports.forgotPassword = async (req, res) => {
     const brevoPayload = {
       sender: {
         name: "Beka Spor",
-        email: process.env.EMAIL_USER
+        email: process.env.EMAIL_USER.toLowerCase() // Brevo case-sensitive eşleşme hatasını çözmek için küçük harfe zorla
       },
       to: [
         {
