@@ -94,7 +94,6 @@ exports.updateTicket = async (req, res) => {
             pass: process.env.EMAIL_PASS,
           },
           tls: {
-            ciphers: 'SSLv3',
             rejectUnauthorized: false
           },
           family: 4 // Render'daki IPv6 (ENETUNREACH) hatasını çözmek için IPv4 zorla
